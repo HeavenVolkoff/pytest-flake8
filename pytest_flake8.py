@@ -6,7 +6,7 @@ from contextlib import redirect_stdout, redirect_stderr
 from io import BytesIO, TextIOWrapper
 
 from flake8.main import application
-from flake8.options import config
+from flake8.options.parse_args import parse_args
 
 import pytest
 
@@ -213,22 +213,14 @@ def check_file(path, flake8ignore, maxlength, maxdoclenght, maxcomplexity,
     if statistics:
         args += ['--statistics']
     app = application.Application()
-    prelim_opts, remaining_args = app.parse_preliminary_options(args)
-    config_finder = config.ConfigFileFinder(
-        app.program,
-        prelim_opts.append_config,
-        config_file=prelim_opts.config,
-        ignore_config_files=prelim_opts.isolated,
-    )
-    app.find_plugins(config_finder)
-    app.register_plugin_options()
-    app.parse_configuration_and_cli(config_finder, remaining_args)
+    app.plugins, app.options = parse_args(args)
     if flake8ignore:
         app.options.ignore = flake8ignore
     app.make_formatter()  # fix this
     app.make_guide()
-    app.make_file_checker_manager()
-    app.run_checks([str(path)])
+    app.make_file_checker_manager([])
+    app.options.filenames = [str(path)]
+    app.run_checks()
     app.formatter.start()
     app.report_errors()
     app.formatter.stop()
